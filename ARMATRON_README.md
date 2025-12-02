@@ -42,6 +42,18 @@ lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/ttyACM0 --teleop
 lerobot-calibrate --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=armatron
 ```
 
+## Teleoperation
+
+```bash
+lerobot-teleoperate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=armatron \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=armatron_leader
+```
+
 ## Notes
 
 - Position the arm in the middle of its range of motion before calibration
