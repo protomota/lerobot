@@ -149,45 +149,9 @@ Open the USD file in Isaac Sim:
 
 Press **Play** to start physics simulation and ROS2 integration.
 
-## Troubleshooting
-
-### "Incorrect status packet" or "There is no status packet" Errors
-
-These errors indicate intermittent serial communication failures with the Feetech motors. Try the following in order:
-
-1. **Restart the computer** - This is often the most effective fix. USB serial ports can get into a bad state that persists until reboot.
-
-2. **Check power supply** - Ensure external power is connected. USB alone is not sufficient to power the motors reliably.
-
-3. **Check cable connections** - Loose servo chain cables cause intermittent failures. Firmly reseat all motor connections.
-
-4. **Use direct USB ports** - Avoid USB hubs. Plug directly into the computer.
-
-5. **Try different USB cables** - Some cables have poor data quality.
-
-6. **Reset USB subsystem**:
-   ```bash
-   sudo modprobe -r cdc_acm && sudo modprobe cdc_acm
-   ```
-
-7. **Unplug and replug both arms** - Remember the correct order: follower first (ACM0), then leader (ACM1).
-
-### Known Issue: Dual-Arm Teleoperation Instability
-
-There is a known intermittent communication issue when running dual-arm teleoperation with Feetech motors. The symptoms include:
-- Teleoperation failing after a few successful iterations
-- Errors like `[TxRxResult] There is no status packet!`
-- Communication getting stuck in a bad state
-
-**Workarounds:**
-- A computer restart often resolves the issue temporarily
-- Individual arm operations (calibration, single-arm testing) work reliably
-- If teleoperation fails, try restarting and running the command again
-
-This appears to be a timing/driver issue with the Feetech servo communication when using sync_read/sync_write operations across multiple serial ports simultaneously.
-
 ## Notes
 
 - Position the arm in the middle of its range of motion before calibration
 - Ensure external power is connected (USB alone is not sufficient)
+- If you get "Incorrect status packet" errors, try running the command again or restart computer
 - ROS_DOMAIN_ID must match between all nodes (default: 42)
