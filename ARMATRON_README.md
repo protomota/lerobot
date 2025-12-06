@@ -32,6 +32,12 @@ lerobot-find-port
 
 **Note**: Plug in leader first (gets ACM0), then follower (gets ACM1).
 
+First, activate the lerobot conda environment:
+
+```bash
+conda activate lerobot
+```
+
 ### Leader Arm
 
 ```bash
