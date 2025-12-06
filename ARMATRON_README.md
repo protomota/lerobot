@@ -88,19 +88,9 @@ lerobot-teleoperate \
 
 The `lerobot-dual-teleoperate` command combines standard teleoperation with ROS2 joint state publishing, allowing real-time visualization in Isaac Sim while teleoperating.
 
-### Basic Usage (without ROS2)
+**Requires ROS2 Humble.** For teleoperation without ROS2, use `lerobot-teleoperate` instead.
 
-```bash
-lerobot-dual-teleoperate \
-    --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM0 \
-    --robot.id=armatron \
-    --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM1 \
-    --teleop.id=armatron_leader
-```
-
-### With ROS2 Publishing for Isaac Sim
+### Usage
 
 ```bash
 # Source ROS2 first, then activate conda environment
@@ -113,9 +103,7 @@ lerobot-dual-teleoperate \
     --robot.id=armatron \
     --teleop.type=so101_leader \
     --teleop.port=/dev/ttyACM1 \
-    --teleop.id=armatron_leader \
-    --ros2_publish=true \
-    --ros_domain_id=42
+    --teleop.id=armatron_leader
 ```
 
 ### Verifying ROS2 Topics
@@ -131,7 +119,7 @@ ros2 topic echo /joint_states --once
 
 ### Using with Isaac Sim
 
-1. Start dual teleoperation with `--ros2_publish=true`
+1. Start dual teleoperation (see Usage above)
 2. In another terminal, run the topic relay:
    ```bash
    source /opt/ros/humble/setup.bash
@@ -145,7 +133,6 @@ ros2 topic echo /joint_states --once
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--ros2_publish` | `false` | Enable ROS2 joint state publishing |
 | `--ros_domain_id` | `42` | ROS_DOMAIN_ID for Isaac Sim communication |
 | `--fps` | `60` | Control loop frequency (also publishing rate) |
 

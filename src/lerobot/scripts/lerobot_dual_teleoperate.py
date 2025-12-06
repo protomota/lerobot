@@ -13,24 +13,14 @@
 # limitations under the License.
 
 """
-Dual teleoperation script with ROS2 joint state publishing for Isaac Sim integration.
+Dual teleoperation with ROS2 joint state publishing for Isaac Sim integration.
 
-This script combines standard teleoperation with optional ROS2 joint state publishing,
-allowing real-time visualization in Isaac Sim while teleoperating.
+This script teleoperates the robot while publishing joint states to ROS2
+for real-time visualization in Isaac Sim.
 
-Example (without ROS2):
+Requires ROS2 Humble. For teleoperation without ROS2, use lerobot-teleoperate instead.
 
-```shell
-lerobot-dual-teleoperate \
-    --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM0 \
-    --robot.id=armatron \
-    --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM1 \
-    --teleop.id=armatron_leader
-```
-
-Example (with ROS2 publishing for Isaac Sim):
+Example:
 
 ```shell
 source /opt/ros/humble/setup.bash
@@ -42,9 +32,7 @@ lerobot-dual-teleoperate \
     --robot.id=armatron \
     --teleop.type=so101_leader \
     --teleop.port=/dev/ttyACM1 \
-    --teleop.id=armatron_leader \
-    --ros2_publish=true \
-    --ros_domain_id=42
+    --teleop.id=armatron_leader
 ```
 
 """
@@ -93,16 +81,16 @@ from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import init_logging, move_cursor_up
 from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
 
-# Optional ROS2 imports - allows script to work without ROS2 installed
-ROS2_AVAILABLE = False
+# ROS2 imports - required for this script
 try:
     import rclpy
     from sensor_msgs.msg import JointState
-
-    ROS2_AVAILABLE = True
-except ImportError:
-    rclpy = None
-    JointState = None
+except ImportError as e:
+    raise ImportError(
+        "ROS2 is required for lerobot-dual-teleoperate. "
+        "Please install ROS2 Humble and run: source /opt/ros/humble/setup.bash\n"
+        "For teleoperation without ROS2, use lerobot-teleoperate instead."
+    ) from e
 
 
 # Joint name mapping from lerobot motor names to Isaac Sim joint names
@@ -193,17 +181,13 @@ class JointStatePublisher:
 
 @dataclass
 class DualTeleoperateConfig:
-    """Configuration for dual teleoperation with optional ROS2 publishing."""
+    """Configuration for dual teleoperation with ROS2 joint state publishing."""
 
     teleop: TeleoperatorConfig
     robot: RobotConfig
-    # Limit the maximum frames per second
     fps: int = 60
     teleop_time_s: float | None = None
-    # Display all cameras on screen
     display_data: bool = False
-    # ROS2 publishing options
-    ros2_publish: bool = False
     ros_domain_id: int = 42
 
 
@@ -290,23 +274,15 @@ def dual_teleop_loop(
 
 @parser.wrap()
 def dual_teleoperate(cfg: DualTeleoperateConfig):
-    """Main entry point for dual teleoperation with optional ROS2 publishing."""
+    """Main entry point for dual teleoperation with ROS2 joint state publishing."""
     init_logging()
     logging.info(pformat(asdict(cfg)))
 
     if cfg.display_data:
         init_rerun(session_name="dual_teleoperation")
 
-    # Initialize ROS2 publisher if enabled
-    ros2_publisher = None
-    if cfg.ros2_publish:
-        if not ROS2_AVAILABLE:
-            raise ImportError(
-                "ROS2 publishing requested but rclpy is not available. "
-                "Please install ROS2 and source the setup script before running."
-            )
-        ros2_publisher = JointStatePublisher(ros_domain_id=cfg.ros_domain_id)
-        logging.info(f"ROS2 publishing enabled on domain {cfg.ros_domain_id}")
+    # Initialize ROS2 publisher
+    ros2_publisher = JointStatePublisher(ros_domain_id=cfg.ros_domain_id)
 
     teleop = make_teleoperator_from_config(cfg.teleop)
     robot = make_robot_from_config(cfg.robot)
@@ -334,8 +310,7 @@ def dual_teleoperate(cfg: DualTeleoperateConfig):
             rr.rerun_shutdown()
         teleop.disconnect()
         robot.disconnect()
-        if ros2_publisher is not None:
-            ros2_publisher.shutdown()
+        ros2_publisher.shutdown()
 
 
 def main():
