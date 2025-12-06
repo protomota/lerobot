@@ -1104,9 +1104,15 @@ class MotorsBus(abc.ABC):
     ) -> tuple[dict[int, int], int]:
         self._setup_sync_reader(motor_ids, addr, length)
         for n_try in range(1 + num_retry):
+            # Clear input buffer before each attempt to remove any stale data
+            if hasattr(self.port_handler, 'ser') and self.port_handler.ser:
+                self.port_handler.ser.reset_input_buffer()
             comm = self.sync_reader.txRxPacket()
             if self._is_comm_success(comm):
                 break
+            # Small delay before retry
+            import time
+            time.sleep(0.005)
             logger.debug(
                 f"Failed to sync read @{addr=} ({length=}) on {motor_ids=} ({n_try=}): "
                 + self.packet_handler.getTxRxResult(comm)

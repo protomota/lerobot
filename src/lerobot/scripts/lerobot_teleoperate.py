@@ -138,14 +138,13 @@ def teleop_loop(
     while True:
         loop_start = time.perf_counter()
 
-        # Get robot observation
-        # Not really needed for now other than for visualization
-        # teleop_action_processor can take None as an observation
-        # given that it is the identity processor as default
-        obs = robot.get_observation()
-
-        # Get teleop action
+        # Get teleop action FIRST (read from leader on ACM1)
         raw_action = teleop.get_action()
+
+        # Get robot observation AFTER leader read, BEFORE write
+        # This ordering gives maximum time between write and next read cycle
+        # to avoid dual-arm serial conflicts (see github.com/huggingface/lerobot/issues/1252)
+        obs = robot.get_observation()
 
         # Process teleop action through pipeline
         teleop_action = teleop_action_processor((raw_action, obs))

@@ -149,6 +149,38 @@ Open the USD file in Isaac Sim:
 
 Press **Play** to start physics simulation and ROS2 integration.
 
+## Dual-Arm Serial Communication Fix
+
+### Problem
+
+When running dual-arm teleoperation with Feetech motors, users may encounter intermittent errors:
+- `[TxRxResult] There is no status packet!`
+- `[TxRxResult] Incorrect status packet!`
+
+This occurs because the original teleop loop order causes a read-after-write timing conflict on the follower's serial port (ACM0).
+
+**Original problematic order:**
+1. Read follower (ACM0) ← fails because it's right after previous iteration's write
+2. Read leader (ACM1)
+3. Write follower (ACM0)
+
+### Solution
+
+The fix involves three changes:
+
+1. **Reorder teleop loop** (`src/lerobot/scripts/lerobot_teleoperate.py`): Read leader first, then follower, then write. This gives maximum time between write and next read.
+
+2. **Add retries to sync_read** (`src/lerobot/robots/so101_follower/so101_follower.py` and `src/lerobot/teleoperators/so101_leader/so101_leader.py`): Add `num_retry=10` to sync_read calls.
+
+3. **Clear serial buffer before reads** (`src/lerobot/motors/motors_bus.py`): Clear input buffer before each sync_read attempt.
+
+**Fixed order:**
+1. Read leader (ACM1)
+2. Read follower (ACM0) ← more time since last write
+3. Write follower (ACM0)
+
+See: https://github.com/huggingface/lerobot/issues/1252
+
 ## Notes
 
 - Position the arm in the middle of its range of motion before calibration
