@@ -84,7 +84,85 @@ lerobot-teleoperate \
     --teleop.id=armatron_leader
 ```
 
-## Isaac Sim Integration
+## Dual Teleoperation with Isaac Sim
+
+The `lerobot-dual-teleoperate` command combines standard teleoperation with ROS2 joint state publishing, allowing real-time visualization in Isaac Sim while teleoperating.
+
+### Basic Usage (without ROS2)
+
+```bash
+lerobot-dual-teleoperate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=armatron \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=armatron_leader
+```
+
+### With ROS2 Publishing for Isaac Sim
+
+```bash
+# Source ROS2 first, then activate conda environment
+source /opt/ros/humble/setup.bash
+conda activate lerobot
+
+lerobot-dual-teleoperate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=armatron \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=armatron_leader \
+    --ros2_publish=true \
+    --ros_domain_id=42
+```
+
+### Verifying ROS2 Topics
+
+In another terminal:
+
+```bash
+source /opt/ros/humble/setup.bash
+export ROS_DOMAIN_ID=42
+ros2 topic list
+ros2 topic echo /joint_states --once
+```
+
+### Using with Isaac Sim
+
+1. Start dual teleoperation with `--ros2_publish=true`
+2. In another terminal, run the topic relay:
+   ```bash
+   source /opt/ros/humble/setup.bash
+   export ROS_DOMAIN_ID=42
+   ros2 run topic_tools relay /joint_states /isaac_joint_command
+   ```
+3. Open Isaac Sim and load the USD file
+4. Press Play - the simulated arm will mirror the physical follower arm
+
+### Configuration Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ros2_publish` | `false` | Enable ROS2 joint state publishing |
+| `--ros_domain_id` | `42` | ROS_DOMAIN_ID for Isaac Sim communication |
+| `--fps` | `60` | Control loop frequency (also publishing rate) |
+
+### Joint Name Mapping
+
+The script maps lerobot motor names to Isaac Sim joint names:
+
+| LeRobot Motor | Isaac Sim Joint |
+|---------------|-----------------|
+| shoulder_pan | Rotation |
+| shoulder_lift | Pitch |
+| elbow_flex | Elbow |
+| wrist_flex | Wrist_Pitch |
+| wrist_roll | Wrist_Roll |
+| gripper | Jaw |
+
+## Isaac Sim Integration (Legacy Method)
 
 ### Step 1: Build ROS2 Workspace
 
