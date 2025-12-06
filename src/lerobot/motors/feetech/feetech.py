@@ -277,6 +277,10 @@ class FeetechMotorsBus(MotorsBus):
             self.write("Min_Position_Limit", motor, calibration.range_min)
             self.write("Max_Position_Limit", motor, calibration.range_max)
 
+        # Small delay to allow motors to process calibration writes
+        import time
+        time.sleep(0.1)
+
         if cache:
             self.calibration = calibration_dict
 

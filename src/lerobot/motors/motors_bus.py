@@ -956,6 +956,7 @@ class MotorsBus(abc.ABC):
         raise_on_error: bool = True,
         err_msg: str = "",
     ) -> tuple[int, int]:
+        import time
         if length == 1:
             read_fn = self.packet_handler.read1ByteTxRx
         elif length == 2:
@@ -965,10 +966,19 @@ class MotorsBus(abc.ABC):
         else:
             raise ValueError(length)
 
-        for n_try in range(1 + num_retry):
+        # Use at least 10 retries for Feetech motors which can have transient failures
+        effective_retry = max(num_retry, 10)
+        for n_try in range(1 + effective_retry):
+            # Clear both input and output buffers before each attempt
+            if hasattr(self.port_handler, 'ser') and self.port_handler.ser:
+                self.port_handler.ser.reset_input_buffer()
+                self.port_handler.ser.reset_output_buffer()
             value, comm, error = read_fn(self.port_handler, motor_id, address)
             if self._is_comm_success(comm):
                 break
+            # Progressive delay: longer waits for repeated failures
+            delay = 0.01 * (n_try + 1)  # 10ms, 20ms, 30ms, etc.
+            time.sleep(delay)
             logger.debug(
                 f"Failed to read @{address=} ({length=}) on {motor_id=} ({n_try=}): "
                 + self.packet_handler.getTxRxResult(comm)
@@ -1027,13 +1037,23 @@ class MotorsBus(abc.ABC):
         raise_on_error: bool = True,
         err_msg: str = "",
     ) -> tuple[int, int]:
+        import time
         data = self._serialize_data(value, length)
-        for n_try in range(1 + num_retry):
+        # Use at least 10 retries for Feetech motors which can have transient failures
+        effective_retry = max(num_retry, 10)
+        for n_try in range(1 + effective_retry):
+            # Clear both input and output buffers before each attempt
+            if hasattr(self.port_handler, 'ser') and self.port_handler.ser:
+                self.port_handler.ser.reset_input_buffer()
+                self.port_handler.ser.reset_output_buffer()
             comm, error = self.packet_handler.writeTxRx(self.port_handler, motor_id, addr, length, data)
             if self._is_comm_success(comm):
                 break
+            # Progressive delay: longer waits for repeated failures
+            delay = 0.01 * (n_try + 1)  # 10ms, 20ms, 30ms, etc.
+            time.sleep(delay)
             logger.debug(
-                f"Failed to sync write @{addr=} ({length=}) on id={motor_id} with {value=} ({n_try=}): "
+                f"Failed to write @{addr=} ({length=}) on id={motor_id} with {value=} ({n_try=}): "
                 + self.packet_handler.getTxRxResult(comm)
             )
 
@@ -1102,11 +1122,30 @@ class MotorsBus(abc.ABC):
         raise_on_error: bool = True,
         err_msg: str = "",
     ) -> tuple[dict[int, int], int]:
-        self._setup_sync_reader(motor_ids, addr, length)
-        for n_try in range(1 + num_retry):
+        import time
+        # Use at least 10 retries for Feetech motors which can have transient failures
+        effective_retry = max(num_retry, 10)
+        for n_try in range(1 + effective_retry):
+            # Clear both input and output buffers before each attempt
+            if hasattr(self.port_handler, 'ser') and self.port_handler.ser:
+                self.port_handler.ser.reset_input_buffer()
+                self.port_handler.ser.reset_output_buffer()
+            self._setup_sync_reader(motor_ids, addr, length)
             comm = self.sync_reader.txRxPacket()
             if self._is_comm_success(comm):
                 break
+            # Progressive delay: longer waits for repeated failures
+            delay = 0.01 * (n_try + 1)  # 10ms, 20ms, 30ms, etc.
+            time.sleep(delay)
+            # On retry 5+, try reopening the port to fully reset it
+            if n_try >= 5 and hasattr(self.port_handler, 'ser') and self.port_handler.ser:
+                try:
+                    self.port_handler.closePort()
+                    time.sleep(0.05)
+                    self.port_handler.openPort()
+                    self.port_handler.setBaudRate(self.port_handler.getBaudRate())
+                except Exception:
+                    pass
             logger.debug(
                 f"Failed to sync read @{addr=} ({length=}) on {motor_ids=} ({n_try=}): "
                 + self.packet_handler.getTxRxResult(comm)
