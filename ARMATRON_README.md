@@ -151,6 +151,10 @@ The script maps lerobot motor names to Isaac Sim joint names:
 
 ## Why We Built lerobot-ros-teleoperate
 
+### Credits
+
+The Isaac Sim integration concepts and USD model came from [LycheeAI](https://github.com/LycheeAI). His work on the SO-ARM101 ROS2 bridge provided the foundation for this integration. However, the original separate-process architecture didn't work reliably with dual-arm teleoperation, so we rewrote the ROS layer to integrate directly into LeRobot's teleoperation loop.
+
 ### The Problem: Serial Port Conflicts
 
 Our original architecture for Isaac Sim visualization used a separate `joint_state_reader.py` script that ran independently from teleoperation. The idea was simple: one process handles teleoperation, another reads joint positions and publishes them to ROS2. In theory, this separation of concerns seemed clean.
