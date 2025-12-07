@@ -183,10 +183,18 @@ class JointStatePublisher:
 
             key = f"{lerobot_name}.pos"
             if key in obs_dict:
-                # lerobot returns positions in degrees, convert to radians
+                # lerobot returns positions in degrees
                 degrees = obs_dict[key]
-                radians = math.radians(degrees)
-                positions.append(radians)
+
+                if lerobot_name == "gripper":
+                    # Gripper: use radians with offset to reach -11° (-0.19 rad) when closed
+                    radians = math.radians(degrees)
+                    gripper_offset = -0.21  # Shifts 0.02 rad down to ~-0.19 rad (-11°)
+                    positions.append(radians + gripper_offset)
+                else:
+                    # Other joints: convert to radians
+                    radians = math.radians(degrees)
+                    positions.append(radians)
             else:
                 positions.append(0.0)
 

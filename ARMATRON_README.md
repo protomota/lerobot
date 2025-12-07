@@ -167,6 +167,27 @@ The script maps lerobot motor names to Isaac Sim joint names:
 | wrist_roll | Wrist_Roll |
 | gripper | Jaw |
 
+### Gripper Calibration for Isaac Sim
+
+The gripper (Jaw joint) requires special handling because the physical gripper range doesn't align with Isaac Sim's default joint limits.
+
+**The Problem:**
+- Physical gripper outputs ~0.02 rad (closed) to ~1.72 rad (open)
+- Isaac Sim's Jaw joint needed range down to -11° to fully close
+
+**The Solution:**
+1. Set Isaac Sim Jaw joint limits to: **lower: -11, upper: 100**
+2. Apply a -0.21 radian offset in code to shift the range down
+
+This maps:
+- Physical closed (0.02 rad) → Isaac Sim -0.19 rad (-11°)
+- Physical open (1.72 rad) → Isaac Sim 1.51 rad (~87°)
+
+To adjust the gripper offset, edit `src/lerobot/scripts/lerobot_ros_teleoperate.py`:
+```python
+gripper_offset = -0.21  # Adjust this value if gripper doesn't fully close/open
+```
+
 ## Why We Built lerobot-ros-teleoperate
 
 ### Credits
