@@ -86,7 +86,7 @@ lerobot-teleoperate \
 
 ## Dual Teleoperation with Isaac Sim
 
-The `lerobot-dual-teleoperate` command combines standard teleoperation with ROS2 joint state publishing, allowing real-time visualization in Isaac Sim while teleoperating.
+The `lerobot-ros-teleoperate` command combines standard teleoperation with ROS2 joint state publishing, allowing real-time visualization in Isaac Sim while teleoperating.
 
 **Requires ROS2 Humble.** For teleoperation without ROS2, use `lerobot-teleoperate` instead.
 
@@ -97,7 +97,7 @@ The `lerobot-dual-teleoperate` command combines standard teleoperation with ROS2
 source /opt/ros/humble/setup.bash
 conda activate lerobot
 
-lerobot-dual-teleoperate \
+lerobot-ros-teleoperate \
     --robot.type=so101_follower \
     --robot.port=/dev/ttyACM0 \
     --robot.id=armatron \

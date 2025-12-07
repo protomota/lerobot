@@ -1,0 +1,1 @@
+- My robot arm IDs are "armatron" (follower) and "armatron_leader" (leader).

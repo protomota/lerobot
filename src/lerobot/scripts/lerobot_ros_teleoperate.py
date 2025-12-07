@@ -26,7 +26,7 @@ Example:
 source /opt/ros/humble/setup.bash
 conda activate lerobot
 
-lerobot-dual-teleoperate \
+lerobot-ros-teleoperate \
     --robot.type=so101_follower \
     --robot.port=/dev/ttyACM0 \
     --robot.id=armatron \
@@ -87,7 +87,7 @@ try:
     from sensor_msgs.msg import JointState
 except ImportError as e:
     raise ImportError(
-        "ROS2 is required for lerobot-dual-teleoperate. "
+        "ROS2 is required for lerobot-ros-teleoperate. "
         "Please install ROS2 Humble and run: source /opt/ros/humble/setup.bash\n"
         "For teleoperation without ROS2, use lerobot-teleoperate instead."
     ) from e
