@@ -149,7 +149,71 @@ The script maps lerobot motor names to Isaac Sim joint names:
 | wrist_roll | Wrist_Roll |
 | gripper | Jaw |
 
-## Isaac Sim Integration (Legacy Method)
+## Why We Built lerobot-ros-teleoperate
+
+### The Problem: Serial Port Conflicts
+
+Our original architecture for Isaac Sim visualization used a separate `joint_state_reader.py` script that ran independently from teleoperation. The idea was simple: one process handles teleoperation, another reads joint positions and publishes them to ROS2. In theory, this separation of concerns seemed clean.
+
+In practice, it was a disaster.
+
+The Feetech STS3215 motors communicate over USB serial ports using half-duplex communication. When `lerobot-teleoperate` is running, it's constantly reading positions from both arms and writing commands to the follower at 60Hz. The moment we launched `joint_state_reader.py` to read joint positions for Isaac Sim, we introduced a second process trying to access the same serial port (`/dev/ttyACM0`).
+
+The result was immediate and catastrophic:
+
+```
+[TxRxResult] There is no status packet!
+device reports readiness to read but returned no data (device disconnected or multiple access on port?)
+```
+
+The serial port can only handle one reader at a time. Two processes fighting over the same port corrupts the communication protocol, causing packet loss, garbled data, and eventual crashes.
+
+### Failed Approaches
+
+We tried several workarounds:
+
+1. **Mutex locks between processes** - Too slow, still caused timing issues
+2. **Separate USB ports** - Would require hardware changes and the follower only has one port
+3. **Reduced read frequency** - Still caused intermittent conflicts
+4. **Queue-based IPC** - Added latency and complexity without solving the root cause
+
+### The Solution: Integrate ROS2 Publishing into Teleoperation
+
+The realization was that we didn't need two processes reading the same port. The teleoperation loop *already reads the joint positions every cycle* - we just weren't doing anything with that data beyond sending it to the motors.
+
+`lerobot-ros-teleoperate` solves this by publishing joint states to ROS2 from within the teleoperation loop itself:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Teleoperation Loop                      │
+│                                                          │
+│   1. Read leader position (ACM1)                        │
+│   2. Read follower position (ACM0)  ──► ROS2 Publish    │
+│   3. Write to follower (ACM0)                           │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+No port conflicts. No additional processes. The joint states get published at the same 60Hz rate as the control loop, providing smooth real-time visualization in Isaac Sim.
+
+### Key Technical Details
+
+- **Single port access**: Only one process ever touches each serial port
+- **Zero additional latency**: Publishing happens inline with the existing read
+- **Degrees to radians conversion**: LeRobot uses degrees internally, Isaac Sim expects radians
+- **Joint name mapping**: Motor names like `shoulder_pan` map to Isaac Sim joints like `Rotation`
+
+### Lessons Learned
+
+Sometimes the "clean" architecture with separated concerns isn't the right choice. When you're dealing with hardware constraints like serial port access, integrating functionality into existing processes can be simpler and more reliable than orchestrating multiple processes.
+
+The legacy method below is preserved for reference, but **do not use it** - it will cause the port conflict errors described above.
+
+---
+
+## Isaac Sim Integration (Legacy Method - Do Not Use)
+
+**Warning:** This method causes serial port conflicts when run alongside teleoperation. Use `lerobot-ros-teleoperate` instead.
 
 ### Step 1: Build ROS2 Workspace
 
