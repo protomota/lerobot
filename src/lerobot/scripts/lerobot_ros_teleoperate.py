@@ -31,10 +31,10 @@ conda activate lerobot
 
 lerobot-ros-teleoperate \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM1 \
+    --teleop.port=/dev/ttyACM0 \
     --teleop.id=armatron_leader \
     --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM0 \
+    --robot.port=/dev/ttyACM1 \
     --robot.id=armatron
 ```
 
@@ -46,11 +46,11 @@ conda activate lerobot
 
 lerobot-ros-teleoperate \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM1 \
+    --teleop.port=/dev/ttyACM0 \
     --teleop.id=armatron_leader
 ```
 
-Note: Leader is always on ACM1 (plugged in second per USB connection order).
+USB connection order: Leader first (ACM0), Follower second (ACM1).
 
 """
 

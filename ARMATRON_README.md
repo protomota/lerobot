@@ -45,10 +45,10 @@ lerobot-find-port
 
 ## IMPORTANT: USB Connection Order
 
-**The arms MUST be plugged in the following order for teleoperation to work:**
+**The arms MUST be plugged in the following order:**
 
-1. **Plug in FOLLOWER first** → assigned `/dev/ttyACM0`
-2. **Plug in LEADER second** → assigned `/dev/ttyACM1`
+1. **Plug in LEADER first** → assigned `/dev/ttyACM0`
+2. **Plug in FOLLOWER second** → assigned `/dev/ttyACM1`
 
 If plugged in the wrong order, unplug both and reconnect in the correct order.
 
@@ -60,28 +60,28 @@ First, activate the lerobot conda environment:
 conda activate lerobot
 ```
 
-### Follower Arm (on /dev/ttyACM0)
+### Leader Arm (on /dev/ttyACM0)
 
 ```bash
-lerobot-calibrate --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=armatron
+lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/ttyACM0 --teleop.id=armatron_leader
 ```
 
-### Leader Arm (on /dev/ttyACM1)
+### Follower Arm (on /dev/ttyACM1)
 
 ```bash
-lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/ttyACM1 --teleop.id=armatron_leader
+lerobot-calibrate --robot.type=so101_follower --robot.port=/dev/ttyACM1 --robot.id=armatron
 ```
 
 ## Teleoperation
 
 ```bash
 lerobot-teleoperate \
-    --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM0 \
-    --robot.id=armatron \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM1 \
-    --teleop.id=armatron_leader
+    --teleop.port=/dev/ttyACM0 \
+    --teleop.id=armatron_leader \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM1 \
+    --robot.id=armatron
 ```
 
 ## ROS2 Teleoperation with Isaac Sim
@@ -103,10 +103,10 @@ conda activate lerobot
 
 lerobot-ros-teleoperate \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM1 \
+    --teleop.port=/dev/ttyACM0 \
     --teleop.id=armatron_leader \
     --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM0 \
+    --robot.port=/dev/ttyACM1 \
     --robot.id=armatron
 ```
 
@@ -120,11 +120,11 @@ conda activate lerobot
 
 lerobot-ros-teleoperate \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM1 \
+    --teleop.port=/dev/ttyACM0 \
     --teleop.id=armatron_leader
 ```
 
-Note: Leader positions are published directly to ROS2. The follower arm can remain plugged in but won't be controlled. Remember: Follower is always ACM0, Leader is always ACM1 (per USB connection order above).
+Note: Leader positions are published directly to ROS2. The follower arm can remain plugged in but won't be controlled.
 
 ### Verifying ROS2 Topics
 
@@ -209,9 +209,9 @@ The realization was that we didn't need two processes reading the same port. The
 ┌─────────────────────────────────────────────────────────┐
 │                  Teleoperation Loop                      │
 │                                                          │
-│   1. Read leader position (ACM1)                        │
-│   2. Read follower position (ACM0)  ──► ROS2 Publish    │
-│   3. Write to follower (ACM0)                           │
+│   1. Read leader position (ACM0)                        │
+│   2. Read follower position (ACM1)  ──► ROS2 Publish    │
+│   3. Write to follower (ACM1)                           │
 │                                                          │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -308,12 +308,12 @@ When running teleoperation with Feetech motors, users may encounter intermittent
 - `[TxRxResult] There is no status packet!`
 - `[TxRxResult] Incorrect status packet!`
 
-This occurs because the original teleop loop order causes a read-after-write timing conflict on the follower's serial port (ACM0).
+This occurs because the original teleop loop order causes a read-after-write timing conflict on the follower's serial port.
 
 **Original problematic order:**
-1. Read follower (ACM0) ← fails because it's right after previous iteration's write
-2. Read leader (ACM1)
-3. Write follower (ACM0)
+1. Read follower ← fails because it's right after previous iteration's write
+2. Read leader
+3. Write follower
 
 ### Solution
 
@@ -326,9 +326,9 @@ The fix involves three changes:
 3. **Clear serial buffer before reads** (`src/lerobot/motors/motors_bus.py`): Clear input buffer before each sync_read attempt.
 
 **Fixed order:**
-1. Read leader (ACM1)
-2. Read follower (ACM0) ← more time since last write
-3. Write follower (ACM0)
+1. Read leader (ACM0)
+2. Read follower (ACM1) ← more time since last write
+3. Write follower (ACM1)
 
 See: https://github.com/huggingface/lerobot/issues/1252
 
