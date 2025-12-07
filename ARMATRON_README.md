@@ -112,7 +112,7 @@ lerobot-ros-teleoperate \
 
 ### Sim-Only Mode (Leader Only)
 
-Use when you only have the leader arm and want to drive Isaac Sim directly:
+Use when you want to drive Isaac Sim directly without controlling the physical follower:
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -120,11 +120,11 @@ conda activate lerobot
 
 lerobot-ros-teleoperate \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM0 \
+    --teleop.port=/dev/ttyACM1 \
     --teleop.id=armatron_leader
 ```
 
-Note: In sim-only mode, leader positions are published directly to ROS2. No follower arm needed.
+Note: Leader positions are published directly to ROS2. The follower arm can remain plugged in but won't be controlled. Remember: Follower is always ACM0, Leader is always ACM1 (per USB connection order above).
 
 ### Verifying ROS2 Topics
 

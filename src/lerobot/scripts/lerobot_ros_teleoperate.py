@@ -38,7 +38,7 @@ lerobot-ros-teleoperate \
     --robot.id=armatron
 ```
 
-Example (sim-only mode, no follower needed):
+Example (sim-only mode, no follower control):
 
 ```shell
 source /opt/ros/humble/setup.bash
@@ -46,9 +46,11 @@ conda activate lerobot
 
 lerobot-ros-teleoperate \
     --teleop.type=so101_leader \
-    --teleop.port=/dev/ttyACM0 \
+    --teleop.port=/dev/ttyACM1 \
     --teleop.id=armatron_leader
 ```
+
+Note: Leader is always on ACM1 (plugged in second per USB connection order).
 
 """
 
