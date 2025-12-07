@@ -162,10 +162,9 @@ class JointStatePublisher:
 
             key = f"{lerobot_name}.pos"
             if key in obs_dict:
-                # lerobot uses normalized values, convert to radians
-                # Normalized range is typically -1 to 1, maps to -pi to pi
-                value = obs_dict[key]
-                radians = value * math.pi
+                # lerobot returns positions in degrees, convert to radians
+                degrees = obs_dict[key]
+                radians = math.radians(degrees)
                 positions.append(radians)
             else:
                 positions.append(0.0)
