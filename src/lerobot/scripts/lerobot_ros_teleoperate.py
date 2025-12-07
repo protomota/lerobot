@@ -122,11 +122,6 @@ LEROBOT_TO_ISAAC_JOINT_MAP = {
 
 ISAAC_JOINT_ORDER = ["Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll", "Jaw"]
 
-# Scaling factors for joints that need adjustment (default 1.0 = no scaling)
-# Increase gripper scale if the sim pincher doesn't move far enough
-JOINT_SCALE_FACTORS = {
-    "gripper": 2.0,  # Adjust this value to change gripper range in Isaac Sim
-}
 
 
 class JointStatePublisher:
@@ -191,9 +186,7 @@ class JointStatePublisher:
                 # lerobot returns positions in degrees, convert to radians
                 degrees = obs_dict[key]
                 radians = math.radians(degrees)
-                # Apply joint-specific scaling factor if defined
-                scale = JOINT_SCALE_FACTORS.get(lerobot_name, 1.0)
-                positions.append(radians * scale)
+                positions.append(radians)
             else:
                 positions.append(0.0)
 
