@@ -205,7 +205,7 @@ def dual_teleop_loop(
     Teleoperation loop with optional ROS2 joint state publishing for Isaac Sim.
 
     CRITICAL: Maintains the read leader -> read follower -> write follower order
-    to avoid serial communication conflicts on dual-arm setups.
+    to avoid serial communication conflicts.
 
     Args:
         teleop: The teleoperator device instance providing control actions.
@@ -229,7 +229,7 @@ def dual_teleop_loop(
 
         # Step 2: Get robot observation AFTER leader read, BEFORE write
         # This ordering gives maximum time between write and next read cycle
-        # to avoid dual-arm serial conflicts (see github.com/huggingface/lerobot/issues/1252)
+        # to avoid serial conflicts (see github.com/huggingface/lerobot/issues/1252)
         obs = robot.get_observation()
 
         # Step 3: Process teleop action through pipeline

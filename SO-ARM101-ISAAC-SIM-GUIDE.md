@@ -4,7 +4,7 @@ Complete guide for setting up SO-ARM101 robot teleoperation with Isaac Sim via R
 
 ## Prerequisites
 
-- SO-ARM101 Dual-Arm Robot
+- SO-ARM101 Robot (leader + follower arms)
 - LeRobot library installed (`pip install -e '.[feetech]'`)
 - Isaac Sim 4.5 or 5.0
 - ROS2 Humble

@@ -7,7 +7,7 @@
 
 ## Prerequisites
 
-- SO-ARM101 Dual-Arm Robot
+- SO-ARM101 Robot (leader + follower arms)
 - LeRobot library installed
 - Isaac Sim 4.5 or 5.0 (for simulation)
 - ROS2 Humble
@@ -153,7 +153,7 @@ The script maps lerobot motor names to Isaac Sim joint names:
 
 ### Credits
 
-The Isaac Sim integration concepts and USD model came from [LycheeAI](https://github.com/LycheeAI). His work on the SO-ARM101 ROS2 bridge provided the foundation for this integration. However, the original separate-process architecture didn't work reliably with dual-arm teleoperation, so we rewrote the ROS layer to integrate directly into LeRobot's teleoperation loop.
+The Isaac Sim integration concepts and USD model came from [LycheeAI](https://github.com/LycheeAI). His work on the SO-ARM101 ROS2 bridge provided the foundation for this integration. However, the original separate-process architecture didn't work reliably with real-time simulation, so we rewrote the ROS layer to integrate directly into LeRobot's teleoperation loop.
 
 ### The Problem: Serial Port Conflicts
 
@@ -282,11 +282,11 @@ Open the USD file in Isaac Sim:
 
 Press **Play** to start physics simulation and ROS2 integration.
 
-## Dual-Arm Serial Communication Fix
+## Serial Communication Fix
 
 ### Problem
 
-When running dual-arm teleoperation with Feetech motors, users may encounter intermittent errors:
+When running teleoperation with Feetech motors, users may encounter intermittent errors:
 - `[TxRxResult] There is no status packet!`
 - `[TxRxResult] Incorrect status packet!`
 

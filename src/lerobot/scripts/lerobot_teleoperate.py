@@ -143,7 +143,7 @@ def teleop_loop(
 
         # Get robot observation AFTER leader read, BEFORE write
         # This ordering gives maximum time between write and next read cycle
-        # to avoid dual-arm serial conflicts (see github.com/huggingface/lerobot/issues/1252)
+        # to avoid serial conflicts (see github.com/huggingface/lerobot/issues/1252)
         obs = robot.get_observation()
 
         # Process teleop action through pipeline
