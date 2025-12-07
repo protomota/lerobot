@@ -13,25 +13,40 @@
 # limitations under the License.
 
 """
-Dual teleoperation with ROS2 joint state publishing for Isaac Sim integration.
+ROS2 teleoperation with joint state publishing for Isaac Sim integration.
 
-This script teleoperates the robot while publishing joint states to ROS2
-for real-time visualization in Isaac Sim.
+This script publishes joint states to ROS2 for real-time visualization in Isaac Sim.
+Supports two modes:
+
+1. Full mode (leader + follower): Follower positions published to ROS2
+2. Sim-only mode (leader only): Leader positions published directly to ROS2
 
 Requires ROS2 Humble. For teleoperation without ROS2, use lerobot-teleoperate instead.
 
-Example:
+Example (full mode with follower):
 
 ```shell
 source /opt/ros/humble/setup.bash
 conda activate lerobot
 
 lerobot-ros-teleoperate \
-    --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM0 \
-    --robot.id=armatron \
     --teleop.type=so101_leader \
     --teleop.port=/dev/ttyACM1 \
+    --teleop.id=armatron_leader \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=armatron
+```
+
+Example (sim-only mode, no follower needed):
+
+```shell
+source /opt/ros/humble/setup.bash
+conda activate lerobot
+
+lerobot-ros-teleoperate \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM0 \
     --teleop.id=armatron_leader
 ```
 
@@ -109,21 +124,24 @@ ISAAC_JOINT_ORDER = ["Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll", 
 class JointStatePublisher:
     """Publishes joint states to ROS2 /joint_states topic for Isaac Sim integration."""
 
-    def __init__(self, ros_domain_id: int = 42):
+    def __init__(self, ros_domain_id: int | None = None):
         """Initialize ROS2 node and publisher.
 
         Args:
-            ros_domain_id: ROS_DOMAIN_ID for Isaac Sim communication (default: 42)
+            ros_domain_id: ROS_DOMAIN_ID override. If None, uses environment variable.
         """
-        # Set ROS_DOMAIN_ID before initializing rclpy
-        os.environ["ROS_DOMAIN_ID"] = str(ros_domain_id)
+        # Only set ROS_DOMAIN_ID if explicitly provided, otherwise use environment
+        if ros_domain_id is not None:
+            os.environ["ROS_DOMAIN_ID"] = str(ros_domain_id)
+
+        actual_domain_id = os.environ.get("ROS_DOMAIN_ID", "0")
 
         rclpy.init()
-        self.node = rclpy.create_node("dual_teleop_publisher")
+        self.node = rclpy.create_node("ros_teleop_publisher")
         self.publisher = self.node.create_publisher(JointState, "/joint_states", 10)
         self.joint_names = ISAAC_JOINT_ORDER
 
-        logging.info(f"ROS2 JointStatePublisher initialized on domain {ros_domain_id}")
+        logging.info(f"ROS2 JointStatePublisher initialized on domain {actual_domain_id}")
         logging.info(f"Publishing to /joint_states with joints: {self.joint_names}")
 
     def publish_joint_states(self, follower_obs: dict[str, float]) -> None:
@@ -179,20 +197,24 @@ class JointStatePublisher:
 
 
 @dataclass
-class DualTeleoperateConfig:
-    """Configuration for dual teleoperation with ROS2 joint state publishing."""
+class ROSTeleoperateConfig:
+    """Configuration for ROS2 teleoperation with joint state publishing.
+
+    The robot (follower) is optional. If not provided, leader positions are
+    published directly to ROS2 for simulation-only mode.
+    """
 
     teleop: TeleoperatorConfig
-    robot: RobotConfig
+    robot: RobotConfig | None = None
     fps: int = 60
     teleop_time_s: float | None = None
     display_data: bool = False
-    ros_domain_id: int = 42
+    ros_domain_id: int | None = None  # Uses ROS_DOMAIN_ID env var if not specified
 
 
-def dual_teleop_loop(
+def ros_teleop_loop(
     teleop: Teleoperator,
-    robot: Robot,
+    robot: Robot | None,
     fps: int,
     teleop_action_processor: RobotProcessorPipeline[tuple[RobotAction, RobotObservation], RobotAction],
     robot_action_processor: RobotProcessorPipeline[tuple[RobotAction, RobotObservation], RobotAction],
@@ -202,14 +224,18 @@ def dual_teleop_loop(
     ros2_publisher: JointStatePublisher | None = None,
 ):
     """
-    Teleoperation loop with optional ROS2 joint state publishing for Isaac Sim.
+    Teleoperation loop with ROS2 joint state publishing for Isaac Sim.
 
-    CRITICAL: Maintains the read leader -> read follower -> write follower order
+    Supports two modes:
+    - Full mode (robot provided): Leader controls follower, follower positions published to ROS2
+    - Sim-only mode (robot=None): Leader positions published directly to ROS2
+
+    When robot is provided, maintains read leader -> read follower -> write follower order
     to avoid serial communication conflicts.
 
     Args:
         teleop: The teleoperator device instance providing control actions.
-        robot: The robot instance being controlled.
+        robot: The robot instance being controlled, or None for sim-only mode.
         fps: The target frequency for the control loop in frames per second.
         display_data: If True, fetches robot observations and displays them in the console and Rerun.
         duration: The maximum duration of the teleoperation loop in seconds. If None, runs indefinitely.
@@ -218,34 +244,46 @@ def dual_teleop_loop(
         robot_observation_processor: Pipeline to process raw observations from the robot.
         ros2_publisher: Optional ROS2 publisher for joint states.
     """
-    display_len = max(len(key) for key in robot.action_features)
+    # Get display length from robot if available, otherwise from teleop
+    if robot is not None:
+        display_len = max(len(key) for key in robot.action_features)
+    else:
+        display_len = max(len(key) for key in teleop.action_features)
+
     start = time.perf_counter()
 
     while True:
         loop_start = time.perf_counter()
 
-        # Step 1: Get teleop action FIRST (read from leader on ACM1)
+        # Step 1: Get teleop action (read from leader)
         raw_action = teleop.get_action()
 
-        # Step 2: Get robot observation AFTER leader read, BEFORE write
+        # Step 2: Get robot observation if robot is connected
         # This ordering gives maximum time between write and next read cycle
         # to avoid serial conflicts (see github.com/huggingface/lerobot/issues/1252)
-        obs = robot.get_observation()
+        if robot is not None:
+            obs = robot.get_observation()
+        else:
+            obs = None
 
-        # Step 3: Process teleop action through pipeline
-        teleop_action = teleop_action_processor((raw_action, obs))
+        # Step 3-4: Process actions through pipeline (only if robot connected)
+        if robot is not None and obs is not None:
+            teleop_action = teleop_action_processor((raw_action, obs))
+            robot_action_to_send = robot_action_processor((teleop_action, obs))
+            # Step 5: Send processed action to robot
+            _ = robot.send_action(robot_action_to_send)
+        else:
+            # Sim-only mode: use raw action directly
+            teleop_action = raw_action
+            robot_action_to_send = raw_action
 
-        # Step 4: Process action for robot through pipeline
-        robot_action_to_send = robot_action_processor((teleop_action, obs))
-
-        # Step 5: Send processed action to robot (write to follower on ACM0)
-        _ = robot.send_action(robot_action_to_send)
-
-        # Step 6: Publish to ROS2 if enabled (after write, before next loop)
+        # Step 6: Publish to ROS2
+        # Use follower positions if available, otherwise leader positions
         if ros2_publisher is not None:
-            ros2_publisher.publish_joint_states(obs)
+            positions_to_publish = obs if obs is not None else raw_action
+            ros2_publisher.publish_joint_states(positions_to_publish)
 
-        if display_data:
+        if display_data and robot is not None and obs is not None:
             # Process robot observation through pipeline
             obs_transition = robot_observation_processor(obs)
 
@@ -272,26 +310,35 @@ def dual_teleop_loop(
 
 
 @parser.wrap()
-def dual_teleoperate(cfg: DualTeleoperateConfig):
-    """Main entry point for dual teleoperation with ROS2 joint state publishing."""
+def ros_teleoperate(cfg: ROSTeleoperateConfig):
+    """Main entry point for ROS2 teleoperation with joint state publishing.
+
+    Supports two modes:
+    - Full mode: Leader + Follower + ROS2 (follower positions published)
+    - Sim-only mode: Leader + ROS2 (leader positions published, no follower needed)
+    """
     init_logging()
     logging.info(pformat(asdict(cfg)))
 
     if cfg.display_data:
-        init_rerun(session_name="dual_teleoperation")
+        init_rerun(session_name="ros_teleoperation")
 
     # Initialize ROS2 publisher
     ros2_publisher = JointStatePublisher(ros_domain_id=cfg.ros_domain_id)
 
     teleop = make_teleoperator_from_config(cfg.teleop)
-    robot = make_robot_from_config(cfg.robot)
+    robot = make_robot_from_config(cfg.robot) if cfg.robot is not None else None
     teleop_action_processor, robot_action_processor, robot_observation_processor = make_default_processors()
 
     teleop.connect()
-    robot.connect()
+    if robot is not None:
+        robot.connect()
+        logging.info("Running in full mode: Leader + Follower + ROS2")
+    else:
+        logging.info("Running in sim-only mode: Leader + ROS2 (no follower)")
 
     try:
-        dual_teleop_loop(
+        ros_teleop_loop(
             teleop=teleop,
             robot=robot,
             fps=cfg.fps,
@@ -308,13 +355,14 @@ def dual_teleoperate(cfg: DualTeleoperateConfig):
         if cfg.display_data:
             rr.rerun_shutdown()
         teleop.disconnect()
-        robot.disconnect()
+        if robot is not None:
+            robot.disconnect()
         ros2_publisher.shutdown()
 
 
 def main():
     register_third_party_devices()
-    dual_teleoperate()
+    ros_teleoperate()
 
 
 if __name__ == "__main__":

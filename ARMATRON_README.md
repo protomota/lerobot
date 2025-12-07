@@ -84,27 +84,47 @@ lerobot-teleoperate \
     --teleop.id=armatron_leader
 ```
 
-## Dual Teleoperation with Isaac Sim
+## ROS2 Teleoperation with Isaac Sim
 
-The `lerobot-ros-teleoperate` command combines standard teleoperation with ROS2 joint state publishing, allowing real-time visualization in Isaac Sim while teleoperating.
+The `lerobot-ros-teleoperate` command publishes joint states to ROS2 for real-time visualization in Isaac Sim. Supports two modes:
+
+- **Full mode**: Leader + Follower - follower positions published to ROS2
+- **Sim-only mode**: Leader only - leader positions published directly to ROS2
 
 **Requires ROS2 Humble.** For teleoperation without ROS2, use `lerobot-teleoperate` instead.
 
-### Usage
+### Full Mode (Leader + Follower)
+
+Use when you have both physical arms connected:
 
 ```bash
-# Source ROS2 first, then activate conda environment
 source /opt/ros/humble/setup.bash
 conda activate lerobot
 
 lerobot-ros-teleoperate \
-    --robot.type=so101_follower \
-    --robot.port=/dev/ttyACM0 \
-    --robot.id=armatron \
     --teleop.type=so101_leader \
     --teleop.port=/dev/ttyACM1 \
+    --teleop.id=armatron_leader \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=armatron
+```
+
+### Sim-Only Mode (Leader Only)
+
+Use when you only have the leader arm and want to drive Isaac Sim directly:
+
+```bash
+source /opt/ros/humble/setup.bash
+conda activate lerobot
+
+lerobot-ros-teleoperate \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM0 \
     --teleop.id=armatron_leader
 ```
+
+Note: In sim-only mode, leader positions are published directly to ROS2. No follower arm needed.
 
 ### Verifying ROS2 Topics
 
@@ -112,28 +132,26 @@ In another terminal:
 
 ```bash
 source /opt/ros/humble/setup.bash
-export ROS_DOMAIN_ID=42
 ros2 topic list
 ros2 topic echo /joint_states --once
 ```
 
 ### Using with Isaac Sim
 
-1. Start dual teleoperation (see Usage above)
+1. Start ROS2 teleoperation (see above)
 2. In another terminal, run the topic relay:
    ```bash
    source /opt/ros/humble/setup.bash
-   export ROS_DOMAIN_ID=42
    ros2 run topic_tools relay /joint_states /isaac_joint_command
    ```
 3. Open Isaac Sim and load the USD file
-4. Press Play - the simulated arm will mirror the physical follower arm
+4. Press Play - the simulated arm will mirror the physical arm
 
 ### Configuration Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--ros_domain_id` | `42` | ROS_DOMAIN_ID for Isaac Sim communication |
+| `--ros_domain_id` | env var | ROS_DOMAIN_ID (uses `$ROS_DOMAIN_ID` if not specified) |
 | `--fps` | `60` | Control loop frequency (also publishing rate) |
 
 ### Joint Name Mapping
