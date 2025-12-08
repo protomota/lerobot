@@ -1,4 +1,4 @@
-# Armatron Notes
+# Protomota Notes
 
 ## Hardware
 
@@ -37,12 +37,6 @@ sudo chmod 666 /dev/ttyACM0
 sudo chmod 666 /dev/ttyACM1
 ```
 
-### Find Port
-
-```bash
-lerobot-find-port
-```
-
 ## IMPORTANT: USB Connection Order
 
 **The arms MUST be plugged in the following order:**
@@ -51,6 +45,18 @@ lerobot-find-port
 2. **Plug in FOLLOWER second** → assigned `/dev/ttyACM1`
 
 If plugged in the wrong order, unplug both and reconnect in the correct order.
+
+### Find Port
+
+After plugging in the arms, verify the ports:
+
+```bash
+lerobot-find-port
+```
+
+## Robot Naming
+
+**Note:** In the examples below, my arms are named `armatron` (follower) and `armatron_leader` (leader). You can name yours anything you want - just replace these IDs with your own names in all commands.
 
 ## Calibration
 
