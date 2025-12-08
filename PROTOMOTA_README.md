@@ -227,14 +227,14 @@ The realization was that we didn't need two processes reading the same port. The
 `lerobot-ros-teleoperate` solves this by publishing joint states to ROS2 from within the teleoperation loop itself:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Teleoperation Loop                      │
-│                                                          │
-│   1. Read leader position (ACM0)                        │
-│   2. Read follower position (ACM1)  ──► ROS2 Publish    │
-│   3. Write to follower (ACM1)                           │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│                   Teleoperation Loop                   │
+│                                                        │
+│   1. Read leader position (ACM0)                       │
+│   2. Read follower position (ACM1)  ──► ROS2 Publish   │
+│   3. Write to follower (ACM1)                          │
+│                                                        │
+└────────────────────────────────────────────────────────┘
 ```
 
 No port conflicts. No additional processes. The joint states get published at the same 60Hz rate as the control loop, providing smooth real-time visualization in Isaac Sim.
