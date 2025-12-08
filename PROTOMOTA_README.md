@@ -287,4 +287,4 @@ See: https://github.com/huggingface/lerobot/issues/1252
 - Position the arm in the middle of its range of motion before calibration
 - Ensure external power is connected (USB alone is not sufficient)
 - If you get "Incorrect status packet" errors, try running the command again or restart computer
-- ROS_DOMAIN_ID must match between all nodes (default: 42)
+- ROS_DOMAIN_ID must match between all nodes (mine is: 42)
