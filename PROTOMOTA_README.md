@@ -194,19 +194,19 @@ To adjust the gripper offset, edit `src/lerobot/scripts/lerobot_ros_teleoperate.
 gripper_offset = -0.21  # Adjust this value if gripper doesn't fully close/open
 ```
 
-## Why We Built lerobot-ros-teleoperate
+## Why I Built lerobot-ros-teleoperate
 
 ### Credits
 
-The Isaac Sim integration concepts and USD model came from [LycheeAI](https://github.com/LycheeAI). His work on the SO-ARM101 ROS2 bridge provided the foundation for this integration. However, the original separate-process architecture didn't work reliably with real-time simulation, so we rewrote the ROS layer to integrate directly into LeRobot's teleoperation loop.
+The Isaac Sim integration concepts and USD model came from [LycheeAI](https://github.com/LycheeAI). His work on the SO-ARM101 ROS2 bridge provided the foundation for this integration. However, the original separate-process architecture didn't work reliably with real-time simulation, so I rewrote the ROS layer to integrate directly into LeRobot's teleoperation loop.
 
 ### The Problem: Serial Port Conflicts
 
-Our original architecture for Isaac Sim visualization used a separate `joint_state_reader.py` script that ran independently from teleoperation. The idea was simple: one process handles teleoperation, another reads joint positions and publishes them to ROS2. In theory, this separation of concerns seemed clean.
+My original architecture for Isaac Sim visualization used a separate `joint_state_reader.py` script that ran independently from teleoperation. The idea was simple: one process handles teleoperation, another reads joint positions and publishes them to ROS2. In theory, this separation of concerns seemed clean.
 
 In practice, it was a disaster.
 
-The Feetech STS3215 motors communicate over USB serial ports using half-duplex communication. When `lerobot-teleoperate` is running, it's constantly reading positions from both arms and writing commands to the follower at 60Hz. The moment we launched `joint_state_reader.py` to read joint positions for Isaac Sim, we introduced a second process trying to access the same serial port (`/dev/ttyACM0`).
+The Feetech STS3215 motors communicate over USB serial ports using half-duplex communication. When `lerobot-teleoperate` is running, it's constantly reading positions from both arms and writing commands to the follower at 60Hz. The moment I launched `joint_state_reader.py` to read joint positions for Isaac Sim, I introduced a second process trying to access the same serial port (`/dev/ttyACM0`).
 
 The result was immediate and catastrophic:
 
@@ -219,7 +219,7 @@ The serial port can only handle one reader at a time. Two processes fighting ove
 
 ### Failed Approaches
 
-We tried several workarounds:
+I tried several workarounds:
 
 1. **Mutex locks between processes** - Too slow, still caused timing issues
 2. **Separate USB ports** - Would require hardware changes and the follower only has one port
@@ -228,7 +228,7 @@ We tried several workarounds:
 
 ### The Solution: Integrate ROS2 Publishing into Teleoperation
 
-The realization was that we didn't need two processes reading the same port. The teleoperation loop *already reads the joint positions every cycle* - we just weren't doing anything with that data beyond sending it to the motors.
+The realization was that I didn't need two processes reading the same port. The teleoperation loop *already reads the joint positions every cycle* - I just wasn't doing anything with that data beyond sending it to the motors.
 
 `lerobot-ros-teleoperate` solves this by publishing joint states to ROS2 from within the teleoperation loop itself:
 
