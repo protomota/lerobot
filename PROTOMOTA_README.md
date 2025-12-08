@@ -198,7 +198,7 @@ gripper_offset = -0.21  # Adjust this value if gripper doesn't fully close/open
 
 ### Credits
 
-The Isaac Sim integration concepts and USD model came from [LycheeAI](https://github.com/LycheeAI). His work on the SO-ARM101 ROS2 bridge provided the foundation for this integration. However, the original separate-process architecture didn't work reliably with real-time simulation, so I rewrote the ROS layer to integrate directly into LeRobot's teleoperation loop.
+The Isaac Sim integration concepts and USD model came from [LycheeAI](https://github.com/LycheeAI). His work on the SO-ARM101 ROS2 bridge provided the foundation for this integration. The original separate-process architecture may work for others, but despite a lot of trying, I could not get it to work reliably with real-time simulation. So I rewrote the ROS layer to integrate directly into LeRobot's teleoperation loop.
 
 ### The Problem: Serial Port Conflicts
 
