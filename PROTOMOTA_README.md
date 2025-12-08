@@ -194,7 +194,7 @@ To adjust the gripper offset, edit `src/lerobot/scripts/lerobot_ros_teleoperate.
 gripper_offset = -0.21  # Adjust this value if gripper doesn't fully close/open
 ```
 
-## Why I Built lerobot-ros-teleoperate
+## Why Build lerobot-ros-teleoperate?
 
 ### Credits
 
